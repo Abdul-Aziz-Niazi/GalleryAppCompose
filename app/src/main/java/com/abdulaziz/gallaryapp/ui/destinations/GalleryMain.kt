@@ -20,6 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.abdulaziz.gallaryapp.MainActivity
+import com.abdulaziz.gallaryapp.data.models.MediaData
 import com.abdulaziz.gallaryapp.ui.GalleryViewModel
 import com.abdulaziz.gallaryapp.ui.destinations.destinations.GalleryFolderDestination
 import com.abdulaziz.gallaryapp.ui.util.FilePathHandler
@@ -42,7 +43,13 @@ fun GalleryMain(navigator: DestinationsNavigator) {
         items(items = albumData) { item ->
             Box(modifier = Modifier.clickable {
                 val listOfImages = filePathHandler.getImagesFromPath(context, item.path)
-                viewModel.setImages(listOfImages)
+                val listOfVideos = filePathHandler.getVideosFromPath(context, item.path)
+
+                val listOfImagesAndVideos = mutableListOf<MediaData>()
+                listOfImagesAndVideos.addAll(listOfImages)
+                listOfImagesAndVideos.addAll(listOfVideos)
+
+                viewModel.setMedia(listOfImagesAndVideos)
                 navigator.navigate(GalleryFolderDestination.route)
             }) {
                 Image(

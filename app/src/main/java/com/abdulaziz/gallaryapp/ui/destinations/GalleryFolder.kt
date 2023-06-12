@@ -29,7 +29,7 @@ fun GalleryFolder(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val filePathHandler = FilePathHandler()
     val viewModel: GalleryViewModel = viewModel(LocalContext.current as MainActivity)
-    val listOfImages = viewModel.imageLiveData.value
+    val listOfImages = viewModel.mediaData.value
     LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize()) {
         items(listOfImages ?: arrayListOf()) { item ->
             Image(

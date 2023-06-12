@@ -8,11 +8,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.abdulaziz.gallaryapp.data.models.AlbumData
 import com.abdulaziz.gallaryapp.data.models.ImageData
+import com.abdulaziz.gallaryapp.data.models.MediaDataTypes
+import com.abdulaziz.gallaryapp.data.models.VideoData
 import java.io.File
 
 
@@ -23,7 +24,6 @@ class FilePathHandler {
 
     fun getImagesFromPath(activity: Context, path: String): List<ImageData> {
         val uriExternal: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        Log.d("FilePathHandler", "getAllShownImagesPath: $uriExternal")
         val cursor: Cursor?
         val columnIndexID: Int
         val listOfAllImages: MutableList<ImageData> = mutableListOf()
@@ -33,13 +33,12 @@ class FilePathHandler {
         if (cursor != null) {
             columnIndexID = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             while (cursor.moveToNext()) {
-                Log.d("FilePathHandler", "getAllShownImagesPath: " + cursor.getString(1))
                 imageId = cursor.getLong(columnIndexID)
                 val filePath = cursor.getString(1)
                 listOfAllImages.add(
                     ImageData(
                         imageId.toString(), getName(filePath),
-                        filePath, 0, ""
+                        filePath, MediaDataTypes.Image
                     )
                 )
             }
@@ -55,15 +54,26 @@ class FilePathHandler {
     fun getAlbums(context: Context): ArrayList<AlbumData> {
         val albums = arrayListOf<AlbumData>()
         val counter = arrayListOf<String>()
-        val cursor: Cursor = MediaStore.Images.Media.query(
-            context.contentResolver,
+        val cursor: Cursor? = context.contentResolver.query(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            arrayOf(MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.ImageColumns.RELATIVE_PATH)
+            arrayOf(MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.ImageColumns.RELATIVE_PATH),
+            null, null, null
         )
 
-        while (cursor.moveToNext()) {
+        while (cursor?.moveToNext() == true) {
             counter.add(cursor.getString(0) + "," + cursor.getString(1))
         }
+        cursor?.close()
+
+        val videoCursor = context.contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            arrayOf(MediaStore.Video.Media.BUCKET_DISPLAY_NAME, MediaStore.Video.VideoColumns.RELATIVE_PATH),
+            null, null, null
+        )
+        while (videoCursor?.moveToNext() == true) {
+            counter.add(videoCursor.getString(0) + "," + videoCursor.getString(1))
+        }
+        videoCursor?.close()
 
         counter.groupingBy { it }.eachCount().forEach {
             val pathSplit = it.key.split(",")
@@ -77,14 +87,22 @@ class FilePathHandler {
         return albums
     }
 
-    fun getImageFor(context: Context, path:String): ImageBitmap {
+    fun getImageFor(context: Context, path: String): ImageBitmap {
         val file = File(path)
         val uri = Uri.fromFile(file)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(context.contentResolver, uri)
-            ImageDecoder.decodeBitmap(source).asImageBitmap()
+            if (isImageFile(file.absolutePath)) {
+                val source = ImageDecoder.createSource(context.contentResolver, uri)
+                ImageDecoder.decodeBitmap(source).asImageBitmap()
+            } else {
+                ThumbnailUtils.createVideoThumbnail(file.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
+            }
         } else {
-            MediaStore.Images.Media.getBitmap(context.contentResolver, uri).asImageBitmap()
+            if (isImageFile(file.absolutePath)) {
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri).asImageBitmap()
+            } else {
+                ThumbnailUtils.createVideoThumbnail(file.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
+            }
         }
     }
 
@@ -92,16 +110,61 @@ class FilePathHandler {
         if (path.isEmpty()) throw IllegalStateException("Path is empty")
         val folder = File(path)
         if (folder.exists().not()) throw IllegalStateException("Folder does not exist")
-        val firstImage = folder.listFiles()?.find { it.isFile && (it.extension == "jpg" || it.extension == "png") }
-            ?: throw IllegalStateException("No image found")
+        val firstImage = folder.listFiles()?.find { it.isFile && isMediaFile(it.absolutePath) }
+            ?: throw IllegalStateException("No media found")
 
         val uri = Uri.fromFile(firstImage)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(context.contentResolver, uri)
-            ThumbnailUtils.extractThumbnail(ImageDecoder.decodeBitmap(source), 100, 100).asImageBitmap()
+            if (isImageFile(firstImage.absolutePath)) {
+                val source = ImageDecoder.createSource(context.contentResolver, uri)
+                ThumbnailUtils.extractThumbnail(ImageDecoder.decodeBitmap(source), 100, 100).asImageBitmap()
+            } else {
+                ThumbnailUtils.createVideoThumbnail(firstImage.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
+            }
         } else {
-            val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-            ThumbnailUtils.extractThumbnail(bitmap, 100, 100).asImageBitmap()
+            if (isImageFile(firstImage.absolutePath)) {
+                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                ThumbnailUtils.extractThumbnail(bitmap, 100, 100).asImageBitmap()
+            } else {
+                ThumbnailUtils.createVideoThumbnail(firstImage.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
+            }
         }
+    }
+
+    fun isMediaFile(path: String): Boolean {
+        return isImageFile(path) || isVideoFile(path)
+    }
+
+    fun isImageFile(path: String): Boolean {
+        return path.endsWith(".jpg") || path.endsWith(".png") || path.endsWith(".jpeg") || path.endsWith(".gif")
+    }
+
+    fun isVideoFile(path: String): Boolean {
+        return path.endsWith(".mp4") || path.endsWith(".mov") || path.endsWith(".avi") || path.endsWith(".mkv")
+    }
+
+    fun getVideosFromPath(context: Context, path: String): List<VideoData> {
+        val uriExternal: Uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val cursor: Cursor?
+        val columnIndexID: Int
+        val listOfAllVideos: MutableList<VideoData> = mutableListOf()
+        val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.VideoColumns.DATA)
+        var videoId: Long
+        cursor = context.contentResolver.query(uriExternal, projection, null, null, null)
+        if (cursor != null) {
+            columnIndexID = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            while (cursor.moveToNext()) {
+                videoId = cursor.getLong(columnIndexID)
+                val filePath = cursor.getString(1)
+                listOfAllVideos.add(
+                    VideoData(
+                        videoId.toString(), getName(filePath),
+                        filePath, MediaDataTypes.Video
+                    )
+                )
+            }
+            cursor.close()
+        }
+        return listOfAllVideos.filter { it.path.contains(path) }
     }
 }

@@ -1,3 +1,8 @@
 package com.abdulaziz.gallaryapp.data.models
 
-data class ImageData(val id: String, val name: String, val path: String, val size: Int, val date: String)
+data class ImageData(
+    override var id: String,
+    override var name: String,
+    override var path: String,
+    override var type: MediaDataTypes = MediaDataTypes.Image,
+) : MediaData()
