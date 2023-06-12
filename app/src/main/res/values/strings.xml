@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">GalleryApp</string>
+    <string name="text_permission_prompt">Permissions Required</string>
+    <string name="text_permission_prompt_message">This app requires permissions to access your photos and videos.</string>
+    <string name="text_permission_prompt_button">Grant Access</string>
+</resources>
