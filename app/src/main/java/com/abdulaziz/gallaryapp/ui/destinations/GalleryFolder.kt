@@ -9,25 +9,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import com.abdulaziz.gallaryapp.R
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.abdulaziz.gallaryapp.MainActivity
 import com.abdulaziz.gallaryapp.ui.GalleryViewModel
+import com.abdulaziz.gallaryapp.ui.util.FilePathHandler
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
 @Destination
 @Composable
 fun GalleryFolder(navigator: DestinationsNavigator) {
+    val context = LocalContext.current
+    val filePathHandler = FilePathHandler()
+    val viewModel: GalleryViewModel = viewModel(LocalContext.current as MainActivity)
+    val listOfImages = viewModel.imageLiveData.value
     LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize()) {
-        items(100) { index ->
+        items(listOfImages ?: arrayListOf()) { item ->
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                bitmap = filePathHandler.getImageFor(context, item.path),
                 contentDescription = "image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
