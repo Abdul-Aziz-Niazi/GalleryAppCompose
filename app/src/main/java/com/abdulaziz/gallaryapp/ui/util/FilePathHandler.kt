@@ -2,22 +2,19 @@ package com.abdulaziz.gallaryapp.ui.util
 
 import android.content.Context
 import android.database.Cursor
-import android.graphics.ImageDecoder
-import android.media.ThumbnailUtils
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import com.abdulaziz.gallaryapp.data.models.*
+import com.abdulaziz.gallaryapp.data.models.AlbumData
+import com.abdulaziz.gallaryapp.data.models.MediaData
+import com.abdulaziz.gallaryapp.data.models.ImageData
+import com.abdulaziz.gallaryapp.data.models.VideoData
+import com.abdulaziz.gallaryapp.data.models.MediaDataTypes
 import java.io.File
 
 
 class FilePathHandler {
-    companion object {
-        val ROOT_PATH = Environment.getExternalStorageDirectory().absolutePath + "/"
-    }
+
 
     fun getImagesFromPath(activity: Context): List<ImageData> {
         val uriExternal: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
@@ -43,7 +40,7 @@ class FilePathHandler {
         return listOfAllImages
     }
 
-    private fun getName(path: String): String {
+    fun getName(path: String): String {
         return path.substring(path.lastIndexOf('/') + 1, path.length)
     }
 
@@ -79,7 +76,10 @@ class FilePathHandler {
             val pathSplit = it.key.split(",")
             albums.add(
                 AlbumData(
-                    pathSplit.first(), pathSplit.first(), ROOT_PATH + pathSplit[1], it.value
+                    pathSplit.first(),
+                    pathSplit.first(),
+                    Environment.getExternalStorageDirectory().absolutePath + "/" + pathSplit[1],
+                    it.value
                 )
             )
         }
@@ -88,12 +88,11 @@ class FilePathHandler {
     }
 
     fun getThumbNail(path: String): File {
-        if (path.isEmpty()) throw IllegalStateException("Path is empty")
-
-
-        val folder = File(path ?: throw IllegalStateException("Path is empty"))
-        if (folder.exists().not()) throw IllegalStateException("Folder does not exist")
-        return folder.listFiles()?.find { it.isFile && isMediaFile(it.absolutePath) } ?: throw IllegalStateException("No media found")
+        check(path.isNotEmpty()) { "Path is empty" }
+        val folder = File(path.ifEmpty { throw IllegalArgumentException("Path is empty") })
+        check(folder.exists()) { "Folder does not exist" }
+        val file = folder.listFiles()?.find { it.isFile && isMediaFile(it.absolutePath) }
+        return file ?: error("No media file found")
     }
 
     fun isMediaFile(path: String): Boolean {
