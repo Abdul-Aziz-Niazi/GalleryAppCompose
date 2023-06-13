@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.abdulaziz.gallaryapp.R
 import com.abdulaziz.gallaryapp.ui.destinations.destinations.GalleryMainDestination
-import com.abdulaziz.gallaryapp.ui.destinations.destinations.SplashDestination
 import com.abdulaziz.gallaryapp.ui.theme.AppStyles
 import com.abdulaziz.gallaryapp.ui.util.PermissionHandler
 import com.ramcosta.composedestinations.annotation.Destination
@@ -30,9 +29,10 @@ fun Permission(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val permissionHandler = PermissionHandler()
     val launcherMultiplePermissions = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissionMap ->
+        val list = permissionMap.filter { !it.value }.keys.toList()
+        if (list.isEmpty()) {
             navigateToGallery(navigator)
         }
     }

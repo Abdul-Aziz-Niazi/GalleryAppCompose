@@ -10,10 +10,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import com.abdulaziz.gallaryapp.data.models.AlbumData
-import com.abdulaziz.gallaryapp.data.models.ImageData
-import com.abdulaziz.gallaryapp.data.models.MediaDataTypes
-import com.abdulaziz.gallaryapp.data.models.VideoData
+import com.abdulaziz.gallaryapp.data.models.*
 import java.io.File
 
 
@@ -22,7 +19,7 @@ class FilePathHandler {
         val ROOT_PATH = Environment.getExternalStorageDirectory().absolutePath + "/"
     }
 
-    fun getImagesFromPath(activity: Context, path: String): List<ImageData> {
+    fun getImagesFromPath(activity: Context): List<ImageData> {
         val uriExternal: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val cursor: Cursor?
         val columnIndexID: Int
@@ -37,14 +34,13 @@ class FilePathHandler {
                 val filePath = cursor.getString(1)
                 listOfAllImages.add(
                     ImageData(
-                        imageId.toString(), getName(filePath),
-                        filePath, MediaDataTypes.Image
+                        imageId.toString(), getName(filePath), filePath, MediaDataTypes.Image
                     )
                 )
             }
             cursor.close()
         }
-        return listOfAllImages.filter { it.path.contains(path) }
+        return listOfAllImages
     }
 
     private fun getName(path: String): String {
@@ -57,7 +53,9 @@ class FilePathHandler {
         val cursor: Cursor? = context.contentResolver.query(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             arrayOf(MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.ImageColumns.RELATIVE_PATH),
-            null, null, null
+            null,
+            null,
+            null
         )
 
         while (cursor?.moveToNext() == true) {
@@ -68,7 +66,9 @@ class FilePathHandler {
         val videoCursor = context.contentResolver.query(
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
             arrayOf(MediaStore.Video.Media.BUCKET_DISPLAY_NAME, MediaStore.Video.VideoColumns.RELATIVE_PATH),
-            null, null, null
+            null,
+            null,
+            null
         )
         while (videoCursor?.moveToNext() == true) {
             counter.add(videoCursor.getString(0) + "," + videoCursor.getString(1))
@@ -87,48 +87,13 @@ class FilePathHandler {
         return albums
     }
 
-    fun getImageFor(context: Context, path: String): ImageBitmap {
-        val file = File(path)
-        val uri = Uri.fromFile(file)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            if (isImageFile(file.absolutePath)) {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(source).asImageBitmap()
-            } else {
-                ThumbnailUtils.createVideoThumbnail(file.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
-            }
-        } else {
-            if (isImageFile(file.absolutePath)) {
-                MediaStore.Images.Media.getBitmap(context.contentResolver, uri).asImageBitmap()
-            } else {
-                ThumbnailUtils.createVideoThumbnail(file.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
-            }
-        }
-    }
-
-    fun getThumbNail(context: Context, path: String): ImageBitmap {
+    fun getThumbNail(path: String): File {
         if (path.isEmpty()) throw IllegalStateException("Path is empty")
-        val folder = File(path)
-        if (folder.exists().not()) throw IllegalStateException("Folder does not exist")
-        val firstImage = folder.listFiles()?.find { it.isFile && isMediaFile(it.absolutePath) }
-            ?: throw IllegalStateException("No media found")
 
-        val uri = Uri.fromFile(firstImage)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            if (isImageFile(firstImage.absolutePath)) {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ThumbnailUtils.extractThumbnail(ImageDecoder.decodeBitmap(source), 100, 100).asImageBitmap()
-            } else {
-                ThumbnailUtils.createVideoThumbnail(firstImage.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
-            }
-        } else {
-            if (isImageFile(firstImage.absolutePath)) {
-                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-                ThumbnailUtils.extractThumbnail(bitmap, 100, 100).asImageBitmap()
-            } else {
-                ThumbnailUtils.createVideoThumbnail(firstImage.absolutePath, MediaStore.Images.Thumbnails.MINI_KIND)?.asImageBitmap()!!
-            }
-        }
+
+        val folder = File(path ?: throw IllegalStateException("Path is empty"))
+        if (folder.exists().not()) throw IllegalStateException("Folder does not exist")
+        return folder.listFiles()?.find { it.isFile && isMediaFile(it.absolutePath) } ?: throw IllegalStateException("No media found")
     }
 
     fun isMediaFile(path: String): Boolean {
@@ -143,7 +108,7 @@ class FilePathHandler {
         return path.endsWith(".mp4") || path.endsWith(".mov") || path.endsWith(".avi") || path.endsWith(".mkv")
     }
 
-    fun getVideosFromPath(context: Context, path: String): List<VideoData> {
+    fun getVideosFromPath(context: Context): List<VideoData> {
         val uriExternal: Uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         val cursor: Cursor?
         val columnIndexID: Int
@@ -158,13 +123,31 @@ class FilePathHandler {
                 val filePath = cursor.getString(1)
                 listOfAllVideos.add(
                     VideoData(
-                        videoId.toString(), getName(filePath),
-                        filePath, MediaDataTypes.Video
+                        videoId.toString(), getName(filePath), filePath, MediaDataTypes.Video
                     )
                 )
             }
             cursor.close()
         }
-        return listOfAllVideos.filter { it.path.contains(path) }
+        return listOfAllVideos
+    }
+
+
+    fun getListsOfImagesAndVideos(context: Context, path: String): List<MediaData> {
+        val allMedia = arrayListOf<MediaData>()
+        when (path) {
+            "images/" -> {
+                allMedia.addAll(getImagesFromPath(context))
+            }
+            "videos/" -> {
+                allMedia.addAll(getVideosFromPath(context))
+            }
+            else -> {
+                allMedia.addAll(getImagesFromPath(context).filter { it.path.contains(path) })
+                allMedia.addAll(getVideosFromPath(context).filter { it.path.contains(path) })
+            }
+        }
+
+        return allMedia
     }
 }

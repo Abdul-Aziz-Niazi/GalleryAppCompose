@@ -20,20 +20,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.abdulaziz.gallaryapp.MainActivity
 import com.abdulaziz.gallaryapp.ui.GalleryViewModel
 import com.abdulaziz.gallaryapp.ui.util.FilePathHandler
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import java.io.File
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Destination
 @Composable
-fun GalleryFolder(navigator: DestinationsNavigator) {
+fun GalleryFolder(navigator: DestinationsNavigator, path: String) {
     val context = LocalContext.current
     val filePathHandler = FilePathHandler()
     val viewModel: GalleryViewModel = viewModel(LocalContext.current as MainActivity)
-    val listOfImages = viewModel.mediaData.value
+    viewModel.getMedia(context, path)
     LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize()) {
-        items(listOfImages ?: arrayListOf()) { item ->
-            Image(
-                bitmap = filePathHandler.getImageFor(context, item.path),
+        items(viewModel.mediaData.value.orEmpty()) { item ->
+            GlideImage(
+                model = File(item.path),
                 contentDescription = "image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -42,7 +46,11 @@ fun GalleryFolder(navigator: DestinationsNavigator) {
                     .aspectRatio(1f)
                     .clickable { }
                     .background(Color.LightGray),
-            )
+            ) {
+                it.apply {
+                    override(150, 150).submit()
+                }
+            }
         }
     }
 }
