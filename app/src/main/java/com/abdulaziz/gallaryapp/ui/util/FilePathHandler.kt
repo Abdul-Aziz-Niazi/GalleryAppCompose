@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import com.abdulaziz.gallaryapp.data.models.AlbumData
 import com.abdulaziz.gallaryapp.data.models.MediaData
 import com.abdulaziz.gallaryapp.data.models.ImageData
@@ -49,26 +50,40 @@ class FilePathHandler {
         val counter = arrayListOf<String>()
         val cursor: Cursor? = context.contentResolver.query(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            arrayOf(MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.ImageColumns.RELATIVE_PATH),
+            arrayOf(MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.ImageColumns.DATA),
             null,
             null,
             null
         )
 
         while (cursor?.moveToNext() == true) {
-            counter.add(cursor.getString(0) + "," + cursor.getString(1))
+            val bucketName = cursor.getString(0)
+            val completePath = cursor.getString(1)
+            val folderPath = completePath.replace(getName(completePath), "")
+            counter.add(
+                bucketName
+                        + ","
+                        + folderPath
+            )
         }
         cursor?.close()
 
         val videoCursor = context.contentResolver.query(
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            arrayOf(MediaStore.Video.Media.BUCKET_DISPLAY_NAME, MediaStore.Video.VideoColumns.RELATIVE_PATH),
+            arrayOf(MediaStore.Video.Media.BUCKET_DISPLAY_NAME, MediaStore.Video.VideoColumns.DATA),
             null,
             null,
             null
         )
         while (videoCursor?.moveToNext() == true) {
-            counter.add(videoCursor.getString(0) + "," + videoCursor.getString(1))
+            val bucketName = videoCursor.getString(0)
+            val completePath = videoCursor.getString(1)
+            val folderPath = completePath.replace(getName(completePath), "")
+            counter.add(
+                bucketName
+                        + ","
+                        + folderPath
+            )
         }
         videoCursor?.close()
 
@@ -78,7 +93,7 @@ class FilePathHandler {
                 AlbumData(
                     pathSplit.first(),
                     pathSplit.first(),
-                    Environment.getExternalStorageDirectory().absolutePath + "/" + pathSplit[1],
+                    pathSplit[1],
                     it.value
                 )
             )

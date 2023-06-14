@@ -34,13 +34,14 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 @Composable
 fun GalleryMain(navigator: DestinationsNavigator) {
     val context = LocalContext.current
-    val filePathHandler = FilePathHandler()
     val viewModel: GalleryViewModel = viewModel(LocalContext.current as MainActivity)
 
 
     viewModel.getAlbums(context)
     LazyVerticalGrid(
-        columns = GridCells.Fixed(count = 2), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+        columns = GridCells.Fixed(count = 2),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
 
         items(items = viewModel.albumData.value.orEmpty()) { item ->
