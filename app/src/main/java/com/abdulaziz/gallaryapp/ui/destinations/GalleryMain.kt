@@ -1,6 +1,7 @@
 package com.abdulaziz.gallaryapp.ui.destinations
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,9 +34,9 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 @Destination
 @Composable
 fun GalleryMain(navigator: DestinationsNavigator) {
+    val defaultItemSize = 200
     val context = LocalContext.current
     val viewModel: GalleryViewModel = viewModel(LocalContext.current as MainActivity)
-
 
     viewModel.getAlbums(context)
     LazyVerticalGrid(
@@ -57,13 +58,12 @@ fun GalleryMain(navigator: DestinationsNavigator) {
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
-                    contentScale = ContentScale.FillWidth,
-                ) {
+                        .aspectRatio(1f),
+                    contentScale = ContentScale.Crop,
+                )
+                {
                     it.apply {
-                        override(200, 200)
-                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                            .submit()
+                        override(defaultItemSize).submit()
                     }
                 }
                 Row(

@@ -12,13 +12,13 @@ import java.io.File
 class GalleryViewModel : ViewModel() {
     private val filePathHandler = FilePathHandler()
 
-    private val thumbnailMap = mutableMapOf<String, File>()
+    private val thumbnailMap = mutableMapOf<String, File?>()
 
-    val allVideos: LiveData<List<MediaData>>
+    private val allVideos: LiveData<List<MediaData>>
         get() = _allVideos
     private var _allVideos = MutableLiveData<List<MediaData>>()
 
-    val allImages: LiveData<List<MediaData>>
+    private val allImages: LiveData<List<MediaData>>
         get() = _allImages
     private var _allImages = MutableLiveData<List<MediaData>>()
 
@@ -39,12 +39,20 @@ class GalleryViewModel : ViewModel() {
         _allImages.value = filePathHandler.getImagesFromPath(context)
     }
 
-    fun getVideoThumbnail(): String? {
-        return allVideos.value?.first()?.path
+    fun getVideoThumbnail(): File? {
+        if (thumbnailMap.contains("videos/"))
+            return thumbnailMap["videos/"]
+        val thumbnailVideos = allVideos.value?.first()?.path?.let { File(it) }
+        thumbnailMap["videos/"] = thumbnailVideos
+        return thumbnailVideos
     }
 
-    fun getImageThumbnail(): String? {
-        return allImages.value?.first()?.path
+    fun getImageThumbnail(): File? {
+        if (thumbnailMap.contains("images/"))
+            return thumbnailMap["images/"]
+        val thumbnailImages = allImages.value?.first()?.path?.let { File(it) }
+        thumbnailMap["images/"] = thumbnailImages
+        return thumbnailImages
     }
 
     fun getMedia(context: Context, albumName: String) {
@@ -80,13 +88,11 @@ class GalleryViewModel : ViewModel() {
         return albums
     }
 
-    fun getThumbNail(path: String): File {
-        val thumbnail = thumbnailMap.getOrElse(path) {
-            filePathHandler.getThumbNail(path).run {
-                thumbnailMap[path] = this
-                this
-            }
-        }
-        return thumbnail
+    fun getThumbNail(path: String): File? {
+        if (thumbnailMap.contains(path))
+            return thumbnailMap[path]
+        val thumbNail = filePathHandler.getThumbNail(path)
+        thumbnailMap[path] = thumbNail
+        return thumbNail
     }
 }

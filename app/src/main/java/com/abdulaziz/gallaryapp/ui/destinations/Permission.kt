@@ -39,9 +39,14 @@ fun Permission(navigator: DestinationsNavigator) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = stringResource(id = R.string.text_permission_prompt), style = AppStyles.textSubtitle, modifier = Modifier.padding(bottom = 16.dp))
+        Text(
+            text = stringResource(id = R.string.text_permission_prompt),
+            style = AppStyles.textSubtitle, modifier = Modifier.padding(bottom = 16.dp)
+        )
         Text(
             text = stringResource(id = R.string.text_permission_prompt_message),
             style = AppStyles.textBodySemiBold.copy(textAlign = TextAlign.Center, fontSize = 16.sp)
